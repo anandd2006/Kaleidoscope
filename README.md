@@ -1,8 +1,21 @@
-# Toy compiler
+# Kaleidoscope: a compiler learning project
 
-A small C++17 compiler following LLVM's Kaleidoscope tutorial through Chapter 3:
-source text -> lexer -> parser / AST -> LLVM IR. The familiar names (gettok,
-CurTok, ParseExpression, ParseBinOpRHS, codegen) are kept, with explanatory comments.
+I started this project to learn how a compiler works by following the
+[official LLVM Kaleidoscope tutorial](https://llvm.org/docs/tutorial/MyFirstLanguageFrontend/index.html).
+It follows the lexer, parser/AST, and LLVM IR stages covered in Chapters 1-3.
+
+This is a tutorial-based learning project, developed with help from OpenAI
+ChatGPT/Codex for explanations, implementation, debugging, and build setup.
+The working baseline was completed with substantial AI assistance. I am using
+it to understand the compiler and build additional features myself.
+
+## What I am learning
+
+- How a lexer turns source characters into tokens.
+- How a parser handles expressions and operator precedence.
+- How AST nodes represent numbers, variables, operations, and functions.
+- How LLVM's C++ API turns those nodes into LLVM IR.
+- How to build a C++ project with CMake and check its behavior with tests.
 
 ## Language
 
@@ -32,9 +45,9 @@ libraries, and LLVMConfig.cmake). A command-line-only LLVM install may omit
 development files. On Windows use an x64 development package and an x64
 Visual Studio C++ toolchain.
 
-PowerShell (from C:/compiler). This machine has a compatible LLVM 20.1.8
+PowerShell (from the project directory). My local setup uses LLVM 20.1.8
 package in tools/clang+llvm-20.1.8-x86_64-pc-windows-msvc, automatically
-selected by CMake. Its existing system LLVM is ARM64 and cannot run here.
+selected by CMake when present. This package is not included in the repository.
 The tools directory is local build infrastructure and is ignored by Git.
 
 For another installation, append -DLLVM_DIR=C:/your/llvm/lib/cmake/llvm to
@@ -74,27 +87,47 @@ IR is emitted only after the whole input succeeds.
 - examples/: sample programs.
 - tests/smoke.cmake: valid programs, precedence, calls, and rejected input.
 
-## Differences from the tutorial
+## Changes and additions to the tutorial baseline
 
-The same concepts are split into files instead of a single source file.
-An input stream replaces getchar so files and standard input both work.
-Errors use exceptions to stop the batch compilation at the first failure.
-Malformed numbers, duplicate parameters, mismatched declarations, and function
-redefinitions are rejected. Division and --tokens are small additions.
-Top-level expressions have unique names so several can coexist in one module.
-Constructor bodies use assignments for readability.
+These are changes in this repository, developed with AI assistance, rather
+than claims that the underlying compiler design is original:
 
-This baseline intentionally leaves later-chapter features for you to add:
-unary minus (write 0-x for now), if/then/else, loops, mutable variables, custom
-operators, optimization passes, JIT execution, and object-file emission.
-It is not a complete implementation of every tutorial chapter.
+- Split the tutorial implementation into lexer, parser, AST, code-generation,
+  and main files under src/.
+- Added CMake build configuration, sample .toy programs, and regression checks.
+- Replaced getchar input with a stream so the compiler accepts files or stdin.
+- Added --tokens to inspect lexer output and -o to save generated LLVM IR.
+- Added division with the same precedence as multiplication.
+- Rejected malformed numbers such as 1.2.3 and a lone decimal point.
+- Added checks for duplicate parameters, conflicting declarations, redefinitions,
+  unknown names, and incorrect function-call argument counts.
+- Used exceptions to stop compilation on errors, with diagnostics on stderr.
+- Gave standalone expressions unique wrapper names so several can share a module.
+- Prevented an output path from overwriting the input source file.
+- Used assignments inside constructors and explanatory comments to make the code
+  easier for me to study.
 
-Tutorial references:
-- https://llvm.org/docs/tutorial/MyFirstLanguageFrontend/LangImpl01.html
-- https://llvm.org/docs/tutorial/MyFirstLanguageFrontend/LangImpl02.html
-- https://llvm.org/docs/tutorial/MyFirstLanguageFrontend/LangImpl03.html
+## Current scope and next steps
 
-Your original source files are preserved in the backup-before-completion folder.
+This project generates LLVM IR. It does not yet include a built-in run mode,
+JIT execution, object-file emission, optimization passes, conditionals, loops,
+mutable variables, or unary minus. It is not an implementation of every chapter.
+
+Possible next exercises are underscore support in identifiers, unary minus,
+more comparisons, and source locations in error messages. Underscore support
+has been discussed but is not implemented in the current saved lexer.
+
+## Acknowledgements
+
+- The **LLVM Project and the authors and contributors of the Kaleidoscope
+  tutorial** for the language, compiler design, examples, and reference
+  implementation on which this project is based:
+  [Chapter 1: Lexer](https://llvm.org/docs/tutorial/MyFirstLanguageFrontend/LangImpl01.html),
+  [Chapter 2: Parser and AST](https://llvm.org/docs/tutorial/MyFirstLanguageFrontend/LangImpl02.html),
+  and [Chapter 3: LLVM IR](https://llvm.org/docs/tutorial/MyFirstLanguageFrontend/LangImpl03.html).
+- **LLVM** for the libraries and tools used to generate, verify, and execute IR.
+- **OpenAI ChatGPT/Codex** for guided explanations and substantial assistance
+  implementing the baseline, troubleshooting the toolchain, and writing tests.
 
 ## Verified locally
 
@@ -103,6 +136,3 @@ precedence, associativity, calls, declarations, source-file protection, and
 invalid programs. When lli and llvm-as are available beside LLVM, the suite
 also assembles generated IR and executes a program that checks the result 14.
 
-Try adding unary minus first: teach ParsePrimary to recognize '-' before an
-expression, then represent it as 0 minus that expression. Add a regression
-case to tests/smoke.cmake before changing the parser.
