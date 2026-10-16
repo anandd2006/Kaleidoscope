@@ -1,0 +1,9 @@
+/build/
+*.ll
+*.bc
+*.obj
+*.o
+*.exe
+/tools/
+/backup-before-completion/
+/build-x64/

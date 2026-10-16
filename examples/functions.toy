@@ -1,0 +1,5 @@
+extern sqrt(value);
+def square(x) x * x;
+def distance(x y) sqrt(square(x) + square(y));
+def smaller(a b) a < b;
+distance(3, 4);

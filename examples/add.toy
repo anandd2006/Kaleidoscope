@@ -1,0 +1,4 @@
+# Parameters in definitions use spaces; arguments in calls use commas.
+def add(a b) a + b;
+def calculate() add(2, 3 * 4);
+calculate();
