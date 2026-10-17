@@ -53,6 +53,21 @@ public:
     llvm::Value *codegen() override;
 };
 
+class IfExprAST : public ExprAST{
+    std::unique_ptr<ExprAST> Cond;
+    std::unique_ptr<ExprAST> Then;
+    std::unique_ptr<ExprAST> Else;
+public:
+    IfExprAST(std::unique_ptr<ExprAST> cond,
+            std::unique_ptr<ExprAST> thenExpr,
+            std::unique_ptr<ExprAST> elseExpr){
+        Cond=std::move(cond);
+        Then=std::move(thenExpr);
+        Else=std::move(elseExpr);
+    }
+    llvm::Value *codegen() override;//This line declares the function that will turn an IfExprAST node into LLVM IR
+};
+
 class PrototypeAST {
     std::string Name;
     std::vector<std::string> Args;

@@ -95,3 +95,5 @@ if(lli AND EXISTS "${assembler}")
     endif()
     message(STATUS "LLVM assembled and executed the generated program: result = 14")
 endif()
+
+include("${CMAKE_CURRENT_LIST_DIR}/conditionals.cmake")

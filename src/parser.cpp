@@ -53,6 +53,25 @@ static std::unique_ptr<ExprAST> ParseIdentifierExpr() {
     getNextToken(); // Consume ')'.
     return std::make_unique<CallExprAST>(IdName, std::move(Args));
 }
+static std::unique_ptr<ExprAST> ParseIfExpr(){
+    getNextToken();
+    auto Cond= ParseExpression();
+    if(CurTok!=tok_then){
+        LogError("Expected 'then'");
+
+    }
+    getNextToken();
+
+    auto Then = ParseExpression();
+
+    if(CurTok!=tok_else){
+        LogError("Expected 'else'");
+    }
+    getNextToken();
+
+    auto Else=ParseExpression();
+    return std::make_unique<IfExprAST>(std::move(Cond),std::move(Then),std::move(Else));
+}
 static std::unique_ptr<ExprAST> ParsePrimary();
 static std::unique_ptr<ExprAST>ParseUnaryMinusExpr(){
     getNextToken();
@@ -61,12 +80,14 @@ static std::unique_ptr<ExprAST>ParseUnaryMinusExpr(){
     return std::make_unique<BinaryExprAST>('-',std::move(Zero),std::move(Operand));
 
 }
+
 static std::unique_ptr<ExprAST> ParsePrimary() {
     switch (CurTok) {
     case tok_identifier: return ParseIdentifierExpr();
     case tok_number: return ParseNumberExpr();
     case '(': return ParseParenExpr();
     case '-': return ParseUnaryMinusExpr();
+    case tok_if:return ParseIfExpr();
     default:
         LogError("Unknown token when expecting an expression");
         return nullptr;

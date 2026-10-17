@@ -2,7 +2,8 @@
 
 I started this project to learn how a compiler works by following the
 [official LLVM Kaleidoscope tutorial](https://llvm.org/docs/tutorial/MyFirstLanguageFrontend/index.html).
-It follows the lexer, parser/AST, and LLVM IR stages covered in Chapters 1-3.
+It follows Chapters 1-3 for the lexer, parser/AST, and LLVM IR, plus the
+if/then/else part of Chapter 5.
 
 This is a tutorial-based learning project, developed with help from OpenAI
 ChatGPT/Codex for explanations, implementation, debugging, and build setup.
@@ -23,7 +24,8 @@ For a detailed explanation in simple English, read the [compiler study notes](NO
 
 All values are double-precision numbers. Supports numeric literals, variables
 that refer to function parameters, parentheses, +, -, *, /, <, function
-definitions, extern declarations, calls, unary minus, underscore identifiers, and # comments. Operators associate
+definitions, extern declarations, calls, unary minus, underscore identifiers,
+if/then/else, and # comments. Operators associate
 left to right; multiplication/division bind before addition/subtraction, and
 comparison has the lowest precedence. Semicolons can separate top-level items.
 
@@ -78,6 +80,51 @@ Without a filename, toycc reads standard input until EOF. Use --help for usage.
 Errors go to stderr and return exit code 1. Successful compilation returns 0.
 IR is emitted only after the whole input succeeds.
 
+## Execute Fibonacci and print the answer
+
+Compiling produces LLVM IR; it does not print the calculated result.
+These PowerShell commands compile the example, add a separate IR entry point
+that prints the result, and execute it with LLVM's `lli`.
+
+Run from the project directory after building. Adjust the `lli.exe` path if
+your LLVM installation is elsewhere.
+
+```powershell
+.\build-x64\Release\toycc.exe examples\fib.toy -o build-x64\fib.ll
+Copy-Item build-x64\fib.ll build-x64\run-fib.ll
+
+@'
+
+@fmt = private constant [4 x i8] c"%g\0A\00"
+declare i32 @printf(ptr, ...)
+
+define i32 @main() {
+entry:
+  %answer = call double @__anon_expr0()
+  call i32 (ptr, ...) @printf(ptr @fmt, double %answer)
+  ret i32 0
+}
+'@ | Add-Content build-x64\run-fib.ll
+
+& ".\tools\clang+llvm-20.1.8-x86_64-pc-windows-msvc\bin\lli.exe" build-x64\run-fib.ll
+```
+
+Expected output:
+
+```text
+55
+```
+
+The wrapper calls the first standalone expression in the file, currently
+`fib(10)`. Changing that expression to `fib(12)`, recompiling, and recreating
+the runnable copy will print 144. No Fibonacci argument is hardcoded in this
+wrapper. With multiple standalone expressions, it still calls only the first
+wrapper, `__anon_expr0`.
+
+Always copy the freshly compiled IR before appending the entry point.
+Appending it twice causes duplicate-definition errors.
+Execution uses an external LLVM tool; a built-in run option is still a future feature.
+
 ## Files and places to extend
 
 - src/token.h: token codes from Chapter 1.
@@ -86,8 +133,9 @@ IR is emitted only after the whole input succeeds.
 - src/parser.h / parser.cpp: grammar and precedence; add new syntax here.
 - src/codegen.h / codegen.cpp: LLVM context, module, builder, and codegen methods.
 - src/main.cpp: command-line options, token display, and compilation loop.
-- examples/: sample programs.
+- examples/: arithmetic, external calls, and recursive Fibonacci examples.
 - tests/smoke.cmake: valid programs, precedence, calls, and rejected input.
+- tests/conditionals.cmake: conditional IR, syntax errors, and runtime results.
 
 ## Features I added while learning
 
@@ -127,6 +175,40 @@ the result, so this approach did not need a new AST class or codegen method.
 This helped me understand token consumption, recursive parsing, operator
 precedence, and transferring AST ownership with `std::move`.
 
+### If / then / else and Fibonacci
+
+I followed Chapter 5 to add conditional expressions. With guidance, I added
+the keyword tokens, lexer checks, an `IfExprAST` node, and `ParseIfExpr()`.
+ChatGPT/Codex helped complete and align the LLVM code generation with the tutorial.
+
+```text
+if 2 < 3 then 10 else 20;
+```
+
+The compiler generates a conditional branch, a block for each path, and a merge
+block. A PHI node chooses the result from the path that ran. Both branches are
+compiled, but only the selected branch executes. Zero is false; nonzero values
+are true, except NaN, which is treated as false.
+
+This helped me understand basic blocks, branch instructions, PHI nodes, nested
+conditionals, and the difference between generating code and executing it.
+
+The example in [examples/fib.toy](examples/fib.toy) uses a base case and recursive calls:
+
+```text
+def fib(x)
+  if x < 3 then
+    1
+  else
+    fib(x-1) + fib(x-2);
+
+fib(10);
+```
+
+For positive integer inputs, this example returns 1 for the first two Fibonacci
+numbers. The expected result of `fib(10)` is **55**. This simple recursive
+version repeats work, so use small inputs while experimenting.
+
 ## Changes and additions to the tutorial baseline
 
 These are changes in this repository, developed with AI assistance, rather
@@ -150,7 +232,7 @@ than claims that the underlying compiler design is original:
 ## Current scope and next steps
 
 This project generates LLVM IR. It does not yet include a built-in run mode,
-JIT execution, object-file emission, optimization passes, conditionals, loops,
+JIT execution, object-file emission, optimization passes, loops,
 or mutable variables. It is not an implementation of every chapter.
 
 Possible next exercises are more comparisons and source locations in error
@@ -167,7 +249,8 @@ internal names need a separate naming scheme to prevent collisions.
   implementation on which this project is based:
   [Chapter 1: Lexer](https://llvm.org/docs/tutorial/MyFirstLanguageFrontend/LangImpl01.html),
   [Chapter 2: Parser and AST](https://llvm.org/docs/tutorial/MyFirstLanguageFrontend/LangImpl02.html),
-  and [Chapter 3: LLVM IR](https://llvm.org/docs/tutorial/MyFirstLanguageFrontend/LangImpl03.html).
+  [Chapter 3: LLVM IR](https://llvm.org/docs/tutorial/MyFirstLanguageFrontend/LangImpl03.html),
+  and [Chapter 5: Control flow](https://llvm.org/docs/tutorial/MyFirstLanguageFrontend/LangImpl05.html).
 - **LLVM** for the libraries and tools used to generate, verify, and execute IR.
 - **OpenAI ChatGPT/Codex** for guided explanations and substantial assistance
   implementing the baseline, troubleshooting the toolchain, and writing tests.
@@ -177,5 +260,6 @@ internal names need a separate naming scheme to prevent collisions.
 Built with Visual Studio 2022 x64 and LLVM 20.1.8. CTest checks arithmetic,
 precedence, associativity, calls, declarations, source-file protection, and
 invalid programs. When lli and llvm-as are available beside LLVM, the suite
-also assembles generated IR and executes a program that checks the result 14.
+also assembles and executes generated IR, checking arithmetic, nested conditions,
+branch selection, and fib(20) = 6765.
 

@@ -17,6 +17,9 @@ static void PrintTokens() {
         case tok_extern: std::cout << "extern\n"; break;
         case tok_identifier: std::cout << "identifier " << IdentifierStr << '\n'; break;
         case tok_number: std::cout << "number " << NumVal << '\n'; break;
+        case tok_if: std::cout<<"if\n"; break;
+        case tok_then: std::cout<<"then\n";break;
+        case tok_else: std::cout<<"else\n";break;
         default: std::cout << "'" << static_cast<char>(token) << "'\n"; break;
         }
     }
