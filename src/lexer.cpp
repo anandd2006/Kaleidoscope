@@ -39,12 +39,12 @@ int gettok() {
         } while (LastChar != std::char_traits<char>::eof() && LastChar != '\n' && LastChar != '\r');
     }
 
-    if (IsAlpha(LastChar)) {
+    if (IsAlpha(LastChar)||LastChar=='_') {
         IdentifierStr.clear();
         do {
             IdentifierStr += static_cast<char>(LastChar);
             LastChar = Input->get();
-        } while (IsAlnum(LastChar));
+        } while (IsAlnum(LastChar)||LastChar=='_');
 
         if (IdentifierStr == "def") return tok_def;
         if (IdentifierStr == "extern") return tok_extern;

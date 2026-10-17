@@ -9,6 +9,8 @@ ChatGPT/Codex for explanations, implementation, debugging, and build setup.
 The working baseline was completed with substantial AI assistance. I am using
 it to understand the compiler and build additional features myself.
 
+For a detailed explanation in simple English, read the [compiler study notes](NOTES.md).
+
 ## What I am learning
 
 - How a lexer turns source characters into tokens.
@@ -21,7 +23,7 @@ it to understand the compiler and build additional features myself.
 
 All values are double-precision numbers. Supports numeric literals, variables
 that refer to function parameters, parentheses, +, -, *, /, <, function
-definitions, extern declarations, calls, and # comments. Operators associate
+definitions, extern declarations, calls, unary minus, underscore identifiers, and # comments. Operators associate
 left to right; multiplication/division bind before addition/subtraction, and
 comparison has the lowest precedence. Semicolons can separate top-level items.
 
@@ -87,6 +89,44 @@ IR is emitted only after the whole input succeeds.
 - examples/: sample programs.
 - tests/smoke.cmake: valid programs, precedence, calls, and rejected input.
 
+## Features I added while learning
+
+After working through the baseline, I made these changes with step-by-step
+explanations and guidance from ChatGPT/Codex:
+
+### Underscores in identifiers
+
+I updated the lexer so an identifier can start with an underscore and contain
+underscores after its first character. Names such as `my_func`, `_value2`, and
+`my_value` are now accepted.
+
+```text
+def my_func(_value2) _value2 + 2;
+my_func(3);
+```
+
+This helped me understand how the lexer checks the first character of a name
+and decides which following characters belong to the same token.
+
+### Unary minus
+
+I added `ParseUnaryMinusExpr()` and connected it to the `'-'` case in
+`ParsePrimary()`. It skips the minus sign, parses its operand, and represents
+`-x` as `0 - x` using the existing `BinaryExprAST` subtraction node.
+
+```text
+-5 + 2;       # -3
+2 * -3;       # -6
+-(2 + 3);     # -5
+```
+
+Parsing the operand with `ParsePrimary()` keeps unary minus more tightly bound
+than multiplication or addition. Existing AST and LLVM subtraction code handle
+the result, so this approach did not need a new AST class or codegen method.
+
+This helped me understand token consumption, recursive parsing, operator
+precedence, and transferring AST ownership with `std::move`.
+
 ## Changes and additions to the tutorial baseline
 
 These are changes in this repository, developed with AI assistance, rather
@@ -111,11 +151,14 @@ than claims that the underlying compiler design is original:
 
 This project generates LLVM IR. It does not yet include a built-in run mode,
 JIT execution, object-file emission, optimization passes, conditionals, loops,
-mutable variables, or unary minus. It is not an implementation of every chapter.
+or mutable variables. It is not an implementation of every chapter.
 
-Possible next exercises are underscore support in identifiers, unary minus,
-more comparisons, and source locations in error messages. Underscore support
-has been discussed but is not implemented in the current saved lexer.
+Possible next exercises are more comparisons and source locations in error
+messages.
+
+One follow-up for underscore support remains: internal expression wrappers still
+use names such as `__anon_expr0`. A user can now write the same name, so those
+internal names need a separate naming scheme to prevent collisions.
 
 ## Acknowledgements
 

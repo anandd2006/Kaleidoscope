@@ -53,11 +53,20 @@ static std::unique_ptr<ExprAST> ParseIdentifierExpr() {
     getNextToken(); // Consume ')'.
     return std::make_unique<CallExprAST>(IdName, std::move(Args));
 }
+static std::unique_ptr<ExprAST> ParsePrimary();
+static std::unique_ptr<ExprAST>ParseUnaryMinusExpr(){
+    getNextToken();
+    auto Operand = ParsePrimary();
+    auto Zero = std::make_unique<NumberExprAST>(0.0);
+    return std::make_unique<BinaryExprAST>('-',std::move(Zero),std::move(Operand));
+
+}
 static std::unique_ptr<ExprAST> ParsePrimary() {
     switch (CurTok) {
     case tok_identifier: return ParseIdentifierExpr();
     case tok_number: return ParseNumberExpr();
     case '(': return ParseParenExpr();
+    case '-': return ParseUnaryMinusExpr();
     default:
         LogError("Unknown token when expecting an expression");
         return nullptr;
